@@ -10,5 +10,6 @@ namespace BookMyHotel.Entities
         [JsonIgnore]
         public Point Location { get; set; }
         public int DistanceCovered { get; set; }
+        public int DeliveryChargePerKM { get; set; }
     }
 }

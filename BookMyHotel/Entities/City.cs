@@ -1,4 +1,5 @@
 ﻿using NetTopologySuite.Geometries;
+using System.Text.Json.Serialization;
 
 namespace BookMyHotel.Entities
 {
@@ -6,6 +7,7 @@ namespace BookMyHotel.Entities
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
-        public Polygon Area { get; set; }
+        [JsonIgnore]
+        public Geometry Area { get; set; }
     }
 }

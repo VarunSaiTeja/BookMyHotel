@@ -10,32 +10,87 @@ namespace BookMyHotel.Controllers
     [ApiController]
     public class HotelsController : ControllerBase
     {
-        private readonly AppDbContext appDbContext;
+        private readonly AppDbContext appDb;
+        private readonly LiteDbContext liteDb;
+        GeometryFactory gf;
 
-        public HotelsController(AppDbContext appDbContext)
+        public HotelsController(AppDbContext appDbContext, LiteDbContext liteDb)
         {
-            this.appDbContext = appDbContext;
+            this.appDb = appDbContext;
+            this.liteDb = liteDb;
+            gf = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(4326);
         }
 
         [HttpPost]
-        public Hotel AddHotel(AddHotelDto dto)
+        public ActionResult<Hotel> AddHotel(AddHotelDto dto)
         {
             var hotel = new Hotel
             {
                 Name = dto.Name,
                 DistanceCovered = dto.DistanceCovered,
-                Location = new Point(dto.Longitude, dto.Latitude)
+                Location = gf.CreatePoint(new Coordinate(dto.Longitude, dto.Latitude)),
+                DeliveryChargePerKM = dto.DeliveryChargePerKm
             };
 
-            appDbContext.Add(hotel);
-            appDbContext.SaveChanges();
-            return hotel;
+            if (!appDb.Cities.Any(c => c.Area.Contains(hotel.Location)))
+                return BadRequest("No City registered with given hotel location");
+
+            appDb.Add(hotel);
+            appDb.SaveChanges();
+            return Ok(hotel);
         }
 
         [HttpGet]
         public List<Hotel> GetHotels()
         {
-            return appDbContext.Hotels.AsNoTracking().ToList();
+            return liteDb.Hotels.AsNoTracking().ToList();
+        }
+
+        [HttpGet]
+        public List<Hotel> GetHotelsInCity(Guid cityId)
+        {
+            var query = from h in appDb.Hotels
+                        from c in appDb.Cities
+                        where c.Id == cityId && c.Area.Contains(h.Location)
+                        select h;
+
+            return query.AsNoTracking().ToList();
+        }
+
+        [HttpGet]
+        public List<NearestHotelDto> FindNearestHotels(double latitude, double longitude, int preferredDistance = 0)
+        {
+            var userLocation = gf.CreatePoint(new Coordinate(longitude, latitude));
+            IQueryable<NearestHotelDto> query;
+            if (preferredDistance == 0)
+            {
+                query = from h in appDb.Hotels
+                        let distance = h.Location.Distance(userLocation)
+                        orderby distance
+                        select new NearestHotelDto
+                        {
+                            Id = h.Id,
+                            Name = h.Name,
+                            _distance = distance,
+                            _deliveryCharge = (distance / 1000) * h.DeliveryChargePerKM
+                        };
+            }
+            else
+            {
+                query = from h in appDb.Hotels
+                        let distance = h.Location.Distance(userLocation)
+                        where distance < preferredDistance
+                        orderby distance
+                        select new NearestHotelDto
+                        {
+                            Id = h.Id,
+                            Name = h.Name,
+                            _distance = distance,
+                            _deliveryCharge = (distance / 1000) * h.DeliveryChargePerKM
+                        };
+            }
+
+            return query.ToList();
         }
     }
 }
