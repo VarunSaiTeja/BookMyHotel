@@ -22,6 +22,8 @@ namespace BookMyHotel.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(City), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
         public ActionResult<City> AddCity(AddCityDto dto)
         {
             var coOrds = dto.CoOrdinates.Select(c => new Coordinate(c.First(), c.Last())).ToArray();

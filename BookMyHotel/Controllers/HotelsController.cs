@@ -22,6 +22,8 @@ namespace BookMyHotel.Controllers
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(Hotel), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status400BadRequest)]
         public ActionResult<Hotel> AddHotel(AddHotelDto dto)
         {
             var hotel = new Hotel
