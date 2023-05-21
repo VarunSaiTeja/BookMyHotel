@@ -6,6 +6,7 @@ namespace BookMyHotel.DTO
     {
         public Guid Id { get; set; }
         public string Name { get; set; }
+        public bool DeliveryAvailable { get; set; }
 
         public double Distance => Math.Round(_distance / 1000, 2);
         public double DeliveryCharge => Math.Round(_deliveryCharge, 2);

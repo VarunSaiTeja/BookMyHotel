@@ -66,11 +66,13 @@ namespace BookMyHotel.Controllers
             {
                 query = from h in appDb.Hotels
                         let distance = h.Location.Distance(userLocation)
+                        where distance < h.DistanceCovered
                         orderby distance
                         select new NearestHotelDto
                         {
                             Id = h.Id,
                             Name = h.Name,
+                            DeliveryAvailable = true,
                             _distance = distance,
                             _deliveryCharge = (distance / 1000) * h.DeliveryChargePerKM
                         };
@@ -79,18 +81,20 @@ namespace BookMyHotel.Controllers
             {
                 query = from h in appDb.Hotels
                         let distance = h.Location.Distance(userLocation)
+                        let deliveryAvailable = distance < h.DistanceCovered
                         where distance < preferredDistance
                         orderby distance
                         select new NearestHotelDto
                         {
                             Id = h.Id,
                             Name = h.Name,
+                            DeliveryAvailable = deliveryAvailable,
                             _distance = distance,
-                            _deliveryCharge = (distance / 1000) * h.DeliveryChargePerKM
+                            _deliveryCharge = deliveryAvailable ? (distance / 1000) * h.DeliveryChargePerKM : 0
                         };
             }
 
-            return query.ToList();
+            return query.Take(10).ToList();
         }
     }
 }
