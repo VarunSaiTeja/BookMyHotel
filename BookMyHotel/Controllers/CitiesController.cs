@@ -22,7 +22,7 @@ namespace BookMyHotel.Controllers
         }
 
         [HttpPost]
-        public City AddCity(AddCityDto dto)
+        public ActionResult<City> AddCity(AddCityDto dto)
         {
             var coOrds = dto.CoOrdinates.Select(c => new Coordinate(c.First(), c.Last())).ToArray();
             var area = gf.CreatePolygon(coOrds);
@@ -32,6 +32,11 @@ namespace BookMyHotel.Controllers
                 Name = dto.Name,
                 Area = area.Reverse()
             };
+
+            var landPossessionCity = appDb.Cities.FirstOrDefault(c => city.Area.Intersects(c.Area));
+            if (landPossessionCity != null)
+                return BadRequest($"Land possession occurred with city {landPossessionCity.Name}");
+
             appDb.Add(city);
             appDb.SaveChanges();
             return city;
